@@ -1,23 +1,23 @@
 import numpy as np
 
-REGULARIZATION_CONSTANT = 1e-10  # default close to zero on a logarithmic scale
+REGULARIZATION_CONSTANT = 1e-10
 
-
-def svd(A):
-    eigenvalues, eigenvectors = np.linalg.eig(np.dot(A.T, A))  # for right singular vectors V
+def decompose(A):
+    eigenvalues, eigenvectors = np.linalg.eigh(np.dot(A.T, A))  # for right singular vectors V
     eigenvalues = np.abs(eigenvalues)
     idx = np.argsort(eigenvalues)[::-1]
     eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:, idx]  # eigenvectors are the columns of the matrix
+    V = eigenvectors[:, idx]  # eigenvectors are the columns of the matrix
+    
     singular_values = np.sqrt(eigenvalues)
+    S = np.zeros(A.shape)
+    np.fill_diagonal(S, singular_values[:min(A.shape)])
 
-    S = np.diag(singular_values)
-    V = eigenvectors / np.linalg.norm(eigenvectors, axis=0)
-    S_regularized = np.diag(np.maximum(REGULARIZATION_CONSTANT, singular_values))  # handles singular matrices
-    U = np.dot(A, np.dot(V, np.linalg.inv(S_regularized)))
-    U = U / np.linalg.norm(U, axis=0)
+    S_inverse = np.diag(1.0 / singular_values)
+    U = np.dot(A, np.dot(V, S_inverse))[:, :min(A.shape)]
+    U = U / (np.linalg.norm(U, axis=0) + REGULARIZATION_CONSTANT)
     return U, S, V.T
 
 
-def verify_svd(A, U, S, V_T):
+def verify(A, U, S, V_T):
     return np.allclose(A, np.dot(U, np.dot(S, V_T)))
